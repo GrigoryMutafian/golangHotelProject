@@ -17,7 +17,7 @@ func main() {
 	defer db.DB.Close()
 
 	http.HandleFunc("/AddRoom", hn.AddRoom)
-
+	http.HandleFunc("/GetAllRoomsInfo", hn.GetAllRoomsInfo)
 	log.Println("server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
