@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"golangHotelProject/db"
+	hm "golangHotelProject/hotelModel"
 	"net/http"
 )
 
@@ -20,28 +21,10 @@ func GetAllRoomsInfo(w http.ResponseWriter, r *http.Request) {
 
 	defer rows.Close()
 
-	var rooms []struct {
-		ID             int
-		Number         int
-		RoomCount      int
-		IsOccupied     bool
-		Floor          int
-		SleepingPlaces int
-		RoomQuality    string
-		NeedCleaning   bool
-	}
+	var rooms []hm.Room
 
 	for rows.Next() {
-		var r struct {
-			ID             int
-			Number         int
-			RoomCount      int
-			IsOccupied     bool
-			Floor          int
-			SleepingPlaces int
-			RoomQuality    string
-			NeedCleaning   bool
-		}
+		var r hm.Room
 
 		err := rows.Scan(&r.ID, &r.Number, &r.RoomCount, &r.IsOccupied, &r.Floor, &r.SleepingPlaces, &r.RoomQuality, &r.NeedCleaning)
 		if err != nil {

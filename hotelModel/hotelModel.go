@@ -1,6 +1,7 @@
 package hotelModel
 
 type Room struct {
+	ID             int    `json:"id,omitempty"`
 	Number         int    `json:"number"`
 	RoomCount      int    `json:"room_count"`
 	IsOccupied     bool   `json:"is_occupied"`
