@@ -17,7 +17,6 @@ func main() {
 	defer db.DB.Close()
 
 	http.HandleFunc("/AddRoom", hn.AddRoom)
-	http.HandleFunc("/GetAllRoomsInfo", hn.GetAllRoomsInfo)
 	http.HandleFunc("/RemoveRoom", hn.RemoveRoom)
 	http.HandleFunc("/PatchRoom", hn.PatchRoom)
 	http.HandleFunc("/GetFilteredRooms", hn.GetFilteredRooms)
