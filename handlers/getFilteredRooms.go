@@ -6,6 +6,7 @@ import (
 	"golangHotelProject/db"
 	hm "golangHotelProject/hotelModel"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -21,10 +22,9 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 	var filter map[string]interface{}
 	responses := make(map[string][]int)
 	err := json.NewDecoder(r.Body).Decode(&filter)
-	if err == io.EOF {
-		filter = nil
-	} else {
-		http.Error(w, "JSON decoding error"+err.Error(), http.StatusBadRequest)
+	if err != nil && err != io.EOF {
+		log.Printf("JSON decoding error: %v", err)
+		http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	if len(filter) == 0 {
