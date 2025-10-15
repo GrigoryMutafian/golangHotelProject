@@ -26,8 +26,8 @@ func AddRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := db.DB.Exec(`INSERT INTO rooms (number, room_count, is_occupied, floor, sleeping_places, room_quality, need_cleaning)
-	VALUES($1, $2, $3, $4, $5, $6, $7)`, newRoom.Number, newRoom.RoomCount, newRoom.IsOccupied, newRoom.Floor, newRoom.SleepingPlaces, newRoom.RoomQuality, newRoom.NeedCleaning)
+	result, err := db.DB.Exec(`INSERT INTO rooms (number, room_count, is_occupied, floor, sleeping_places, room_type, need_cleaning)
+	VALUES($1, $2, $3, $4, $5, $6, $7)`, newRoom.Number, newRoom.RoomCount, newRoom.IsOccupied, newRoom.Floor, newRoom.SleepingPlaces, newRoom.RoomType, newRoom.NeedCleaning)
 
 	if err != nil {
 		http.Error(w, "Database insertion error: "+err.Error(), http.StatusInternalServerError)

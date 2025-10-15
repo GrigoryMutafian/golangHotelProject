@@ -7,6 +7,6 @@ type Room struct {
 	IsOccupied     bool   `json:"is_occupied"`
 	Floor          int    `json:"floor"`
 	SleepingPlaces int    `json:"sleeping_places"`
-	RoomQuality    string `json:"room_quality"`
+	RoomType       string `json:"room_type"`
 	NeedCleaning   bool   `json:"need_cleaning"`
 }

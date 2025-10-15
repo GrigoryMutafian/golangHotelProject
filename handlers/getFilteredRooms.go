@@ -28,7 +28,7 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(filter) == 0 {
-		rows, err := db.DB.Query(`SELECT id, number, room_count, is_occupied, floor, sleeping_places, room_quality, need_cleaning FROM rooms`)
+		rows, err := db.DB.Query(`SELECT id, number, room_count, is_occupied, floor, sleeping_places, room_type, need_cleaning FROM rooms`)
 		if err != nil {
 			http.Error(w, "DB query error", http.StatusInternalServerError)
 			return
@@ -41,7 +41,7 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 		for rows.Next() {
 			var r hm.Room
 
-			err := rows.Scan(&r.ID, &r.Number, &r.RoomCount, &r.IsOccupied, &r.Floor, &r.SleepingPlaces, &r.RoomQuality, &r.NeedCleaning)
+			err := rows.Scan(&r.ID, &r.Number, &r.RoomCount, &r.IsOccupied, &r.Floor, &r.SleepingPlaces, &r.RoomType, &r.NeedCleaning)
 			if err != nil {
 				http.Error(w, "String processing error", http.StatusInternalServerError)
 				return
