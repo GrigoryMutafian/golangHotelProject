@@ -14,6 +14,7 @@ COPY . .
 # Собираем бинарь (имя: server)
 RUN go build -o server .
 # ---------- Этап 2: запуск ----------
+    
 FROM alpine:3.20
 
 WORKDIR /app

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"golangHotelProject/db"
-	hn "golangHotelProject/handlers"
+	hn "golangHotelProject/room/handlers"
 	"log"
 	"net/http"
 )
