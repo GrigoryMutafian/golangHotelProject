@@ -1,13 +1,13 @@
 CREATE TABLE IF NOT EXISTS rooms (
     id SERIAL PRIMARY KEY,
-    number INT  NOT NULL UNIQUE,
-    room_count INT DEFAULT 1,
-    is_occupied BOOLEAN DEFAULT FALSE,
+    number INT NOT NULL UNIQUE,
+    room_count INT NOT NULL DEFAULT 1,
+    is_occupied BOOLEAN NOT NULL DEFAULT FALSE,
     floor INT NOT NULL,
     sleeping_places INT NOT NULL DEFAULT 1,
-    room_type  NOT NULL VARCHAR(50) CHECK (room_type IN ('Standard', 'Deluxe', 'Suite')),
-    need_cleaning BOOLEAN DEFAULT FALSE
-);  
+    room_type VARCHAR(50) NOT NULL CHECK (room_type IN ('Standard', 'Deluxe', 'Suite')),
+    need_cleaning BOOLEAN NOT NULL DEFAULT FALSE
+);
 
 INSERT INTO rooms (number, room_count, is_occupied, floor, sleeping_places, room_type, need_cleaning)
 VALUES
@@ -21,12 +21,13 @@ CREATE TABLE IF NOT EXISTS bookings (
     guest_name VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    arrival_status BOOLEAN DEFAULT FALSE,
-    CHECK (start_date < end_date)
+    arrival_status BOOLEAN NOT NULL DEFAULT FALSE,
+    CHECK (start_date < end_date),
+    CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
-INSERT INTO bookings (guest_name, start_date, end_date, arrival_status)
+INSERT INTO bookings (room_id, guest_name, start_date, end_date, arrival_status)
 VALUES
-    ('John', 1, '2025-10-17', '2025-11-17', true),
-    ('Ann', 2, '2030-10-31', '2030-11-20', false),
-    ('Maria', 3, '2025-12-20', '2026-01-11', false);
+    (1, 'John',  '2025-10-17', '2025-11-17', TRUE),
+    (2, 'Ann',   '2030-10-31', '2030-11-20', FALSE),
+    (3, 'Maria', '2025-12-20', '2026-01-11', FALSE);

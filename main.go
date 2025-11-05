@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"golangHotelProject/db"
-	hn "golangHotelProject/room/handlers"
+	hn "golangHotelProject/internal/delivery/handlers"
+	"golangHotelProject/internal/repository"
+	"golangHotelProject/internal/repository/db"
+	"golangHotelProject/internal/usecase"
 	"log"
 	"net/http"
 )
@@ -16,9 +18,16 @@ func main() {
 
 	defer db.DB.Close()
 
-	http.HandleFunc("/AddRoom", hn.AddRoom)
+	roomRepo := &repository.PgRoomRepository{DB: db.DB}
+	roomUC := usecase.NewRoomUsecase(roomRepo)
+
+	if err := hn.InitDependencies(roomUC); err != nil {
+		log.Fatalf("handlers init: %v", err)
+	}
+
+	http.HandleFunc("/Create", hn.Create)
 	http.HandleFunc("/RemoveRoom", hn.RemoveRoom)
-	http.HandleFunc("/PatchRoom", hn.PatchRoom)
+	http.HandleFunc("/Patch", hn.Patch)
 	http.HandleFunc("/GetFilteredRooms", hn.GetFilteredRooms)
 	log.Println("server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
