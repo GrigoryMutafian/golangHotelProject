@@ -35,6 +35,7 @@ func main() {
 	http.HandleFunc("/RemoveRoom", hn.RemoveRoom)
 	http.HandleFunc("/Patch", hn.Patch)
 	http.HandleFunc("/GetFilteredRooms", hn.GetFilteredRooms)
+
 	http.HandleFunc("/CreateBooking", hn.CreateBooking)
 	log.Println("server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
