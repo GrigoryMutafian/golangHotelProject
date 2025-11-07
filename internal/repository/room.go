@@ -13,12 +13,12 @@ import (
 )
 
 type RoomRepository interface {
-	Create(ctx context.Context, room md.Room) error
-	List(ctx context.Context) ([]md.Room, error)
-	Filter(ctx context.Context, filter map[string]interface{}) (map[string][]int, error)
+	CreateRoom(ctx context.Context, room md.Room) error
+	ListRoom(ctx context.Context) ([]md.Room, error)
+	FilterRoom(ctx context.Context, filter map[string]interface{}) (map[string][]int, error)
 	IsNumberExists(ctx context.Context, number int) (bool, error)
-	Patch(ctx context.Context, id int, p dto.RoomPatch) error
-	Delete(ctx context.Context, id int) error
+	PatchRoom(ctx context.Context, id int, p dto.RoomPatch) error
+	DeleteRoom(ctx context.Context, id int) error
 	IsOccupied(ctx context.Context, roomID int) (bool, error)
 }
 
@@ -26,7 +26,7 @@ type PgRoomRepository struct {
 	DB *sql.DB
 }
 
-func (r *PgRoomRepository) Create(ctx context.Context, room md.Room) error { //addRoom
+func (r *PgRoomRepository) CreateRoom(ctx context.Context, room md.Room) error {
 	_, err := r.DB.ExecContext(ctx, `INSERT INTO rooms (number, room_count, is_occupied, floor, sleeping_places, room_type, need_cleaning)
 	VALUES($1, $2, $3, $4, $5, $6, $7)`, room.Number, room.RoomCount, room.IsOccupied, room.Floor, room.SleepingPlaces, room.RoomType, room.NeedCleaning)
 
@@ -47,7 +47,7 @@ func (r *PgRoomRepository) IsNumberExists(ctx context.Context, number int) (bool
 	return true, nil
 }
 
-func (r *PgRoomRepository) List(ctx context.Context) ([]md.Room, error) {
+func (r *PgRoomRepository) ListRoom(ctx context.Context) ([]md.Room, error) {
 
 	rows, err := r.DB.QueryContext(ctx, `SELECT id, number, room_count, is_occupied, floor, sleeping_places, room_type, need_cleaning FROM rooms`)
 	if err != nil {
@@ -77,7 +77,7 @@ func (r *PgRoomRepository) List(ctx context.Context) ([]md.Room, error) {
 	return rooms, nil
 }
 
-func (r *PgRoomRepository) Filter(ctx context.Context, filter map[string]interface{}) (map[string][]int, error) {
+func (r *PgRoomRepository) FilterRoom(ctx context.Context, filter map[string]interface{}) (map[string][]int, error) {
 	responses := make(map[string][]int)
 	for column, value := range filter {
 		query := fmt.Sprintf("SELECT id FROM rooms WHERE %s = $1", column)
@@ -96,7 +96,7 @@ func (r *PgRoomRepository) Filter(ctx context.Context, filter map[string]interfa
 	}
 	return responses, nil
 }
-func (r *PgRoomRepository) Patch(ctx context.Context, id int, p dto.RoomPatch) error {
+func (r *PgRoomRepository) PatchRoom(ctx context.Context, id int, p dto.RoomPatch) error {
 	sets := make([]string, 0, 7)
 	args := make([]any, 0, 7)
 
@@ -148,7 +148,7 @@ func (r *PgRoomRepository) Patch(ctx context.Context, id int, p dto.RoomPatch) e
 	return nil
 }
 
-func (r *PgRoomRepository) Delete(ctx context.Context, id int) error {
+func (r *PgRoomRepository) DeleteRoom(ctx context.Context, id int) error {
 	_, err := db.DB.ExecContext(ctx, `DELETE FROM rooms WHERE id = $1`, id)
 	if err != nil {
 		return err

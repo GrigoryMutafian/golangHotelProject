@@ -20,8 +20,14 @@ func main() {
 
 	roomRepo := &repository.PgRoomRepository{DB: db.DB}
 	roomUC := usecase.NewRoomUsecase(roomRepo)
-
 	if err := hn.InitDependencies(roomUC); err != nil {
+		log.Fatalf("handlers init: %v", err)
+	}
+
+	bookingRepo := &repository.PgBookingRepository{DB: db.DB}
+	bookingUC := usecase.NewBookingUsecase(bookingRepo)
+
+	if err := hn.InitBookingDependencies(bookingUC); err != nil {
 		log.Fatalf("handlers init: %v", err)
 	}
 
@@ -29,6 +35,7 @@ func main() {
 	http.HandleFunc("/RemoveRoom", hn.RemoveRoom)
 	http.HandleFunc("/Patch", hn.Patch)
 	http.HandleFunc("/GetFilteredRooms", hn.GetFilteredRooms)
+	http.HandleFunc("/CreateBooking", hn.CreateBooking)
 	log.Println("server running on http://localhost:8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

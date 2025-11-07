@@ -17,17 +17,17 @@ VALUES
 
 CREATE TABLE IF NOT EXISTS bookings (
     id SERIAL PRIMARY KEY,
-    room_id INT NOT NULL UNIQUE,
-    guest_name VARCHAR(50) NOT NULL,
+    room_id INT NOT NULL,
+    guest_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    arrival_status BOOLEAN NOT NULL DEFAULT FALSE,
+    status BOOLEAN NOT NULL DEFAULT FALSE,
     CHECK (start_date < end_date),
     CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
-INSERT INTO bookings (room_id, guest_name, start_date, end_date, arrival_status)
+INSERT INTO bookings (room_id, guest_id, start_date, end_date, status)
 VALUES
-    (1, 'John',  '2025-10-17', '2025-11-17', TRUE),
-    (2, 'Ann',   '2030-10-31', '2030-11-20', FALSE),
-    (3, 'Maria', '2025-12-20', '2026-01-11', FALSE);
+    (1, 1,  '2025-10-17', '2025-11-17', TRUE),
+    (2, 2,   '2030-10-31', '2030-11-20', FALSE),
+    (3, 3, '2025-12-20', '2026-01-11', FALSE);

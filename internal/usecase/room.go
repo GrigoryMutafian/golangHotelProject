@@ -39,7 +39,7 @@ func (uc *RoomUsecase) AddRoom(ctx context.Context, room md.Room) error {
 		return errors.Join(ErrConflict, errors.New("room number already exists"))
 	}
 
-	if err := uc.Repo.Create(ctx, room); err != nil {
+	if err := uc.Repo.CreateRoom(ctx, room); err != nil {
 		return err
 	}
 	return nil
@@ -104,7 +104,7 @@ func (uc *RoomUsecase) PatchRoom(ctx context.Context, id int, p dto.RoomPatch) e
 		}
 	}
 
-	if err := uc.Repo.Patch(ctx, id, p); err != nil {
+	if err := uc.Repo.PatchRoom(ctx, id, p); err != nil {
 		return err
 	}
 	return nil
@@ -131,7 +131,7 @@ func (uc *RoomUsecase) RemoveRoom(ctx context.Context, id int) error {
 		return errors.Join(ErrValidation, errors.New("room is occupied"))
 	}
 
-	err = uc.Repo.Delete(ctx, id)
+	err = uc.Repo.DeleteRoom(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func (uc *RoomUsecase) RemoveRoom(ctx context.Context, id int) error {
 }
 
 func (uc *RoomUsecase) GetList(ctx context.Context) ([]md.Room, error) {
-	response, _ := uc.Repo.List(ctx)
+	response, _ := uc.Repo.ListRoom(ctx)
 	if len(response) == 0 {
 		return response, errors.Join(ErrConflict, errors.New("database is clear"))
 	}
@@ -147,6 +147,6 @@ func (uc *RoomUsecase) GetList(ctx context.Context) ([]md.Room, error) {
 }
 
 func (uc *RoomUsecase) GetFilteredRooms(ctx context.Context, filter map[string]interface{}) (map[string][]int, error) {
-	response, err := uc.Repo.Filter(ctx, filter)
+	response, err := uc.Repo.FilterRoom(ctx, filter)
 	return response, err
 }
