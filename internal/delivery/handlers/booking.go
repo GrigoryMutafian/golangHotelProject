@@ -6,6 +6,7 @@ import (
 	"golangHotelProject/internal/model"
 	"golangHotelProject/internal/usecase"
 	"net/http"
+	"strconv"
 )
 
 var bookingUC *usecase.BookingUsecase
@@ -55,4 +56,46 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "id input is clear", http.StatusBadRequest)
+		return
+	}
+
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "pars error", http.StatusBadRequest)
+		return
+	}
+
+	book, err := bookingUC.ReadByIDUsecase(r.Context(), idInt)
+	if err != nil {
+		switch {
+		case usecase.IsValidationErr(err):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case usecase.IsConflictErr(err):
+			http.Error(w, err.Error(), http.StatusConflict)
+		default:
+			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	text := fmt.Sprintf("column id: %d", idInt)
+	response := map[string]model.Booking{text: book}
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 }

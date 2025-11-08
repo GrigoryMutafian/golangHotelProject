@@ -44,3 +44,14 @@ func validateBooking(b model.Booking) error {
 	}
 	return nil
 }
+
+func (uc *BookingUsecase) ReadByIDUsecase(ctx context.Context, id int) (model.Booking, error) {
+	if id <= 0 {
+		return model.Booking{}, errors.Join(ErrValidation, errors.New("id <= 0"))
+	}
+	b, _ := uc.Repo.ReadBookingByID(ctx, id)
+	if b.RoomID == 0 && b.GuestID == 0 {
+		return model.Booking{}, errors.Join(ErrValidation, errors.New("no rows"))
+	}
+	return b, nil
+}
