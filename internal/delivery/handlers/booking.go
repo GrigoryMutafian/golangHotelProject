@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"golangHotelProject/internal/delivery/handlers/dto"
 	"golangHotelProject/internal/model"
 	"golangHotelProject/internal/usecase"
 	"net/http"
@@ -98,4 +99,42 @@ func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+}
+
+func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	defer r.Body.Close()
+
+	var patch dto.BookingPatch
+
+	err := json.NewDecoder(r.Body).Decode(&patch)
+	if err != nil {
+		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := bookingUC.PatchBookingByID(r.Context(), patch); err != nil {
+		switch {
+		case usecase.IsValidationErr(err):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case usecase.IsConflictErr(err):
+			http.Error(w, err.Error(), http.StatusConflict)
+		default:
+			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := fmt.Sprintf("column id: %d", patch.ID)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

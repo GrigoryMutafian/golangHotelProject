@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"golangHotelProject/internal/delivery/handlers/dto"
 	"golangHotelProject/internal/model"
 	"log"
 )
@@ -12,6 +14,7 @@ type BookingRepository interface {
 	GettingStatus(ctx context.Context, guest_id int) (bool, error)
 	ArrivalStatusOfRoom(ctx context.Context, RoomID int) (bool, error)
 	ReadBookingByID(ctx context.Context, id int) (model.Booking, error)
+	PatchBooking(ctx context.Context, b dto.BookingPatch) error
 }
 
 type PgBookingRepository struct {
@@ -70,4 +73,21 @@ func (r *PgBookingRepository) ReadBookingByID(ctx context.Context, id int) (mode
 		}
 	}
 	return b, nil
+}
+
+func (r *PgBookingRepository) PatchBooking(ctx context.Context, b dto.BookingPatch) error {
+	const q = `UPDATE bookings SET room_id = $1, guest_id = $2, start_date = $3, end_date = $4, status = $5 WHERE id = $6`
+	rows, err := r.DB.ExecContext(ctx, q, b.RoomID, b.GuestID, b.Start_date, b.End_date, b.Status, b.ID)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := rows.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows")
+	}
+	return nil
 }

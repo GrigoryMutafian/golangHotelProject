@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"golangHotelProject/internal/delivery/handlers/dto"
 	"golangHotelProject/internal/model"
 	repo "golangHotelProject/internal/repository"
 )
@@ -54,4 +55,51 @@ func (uc *BookingUsecase) ReadByIDUsecase(ctx context.Context, id int) (model.Bo
 		return model.Booking{}, errors.Join(ErrValidation, errors.New("no rows"))
 	}
 	return b, nil
+}
+
+func (uc *BookingUsecase) PatchBookingByID(ctx context.Context, b dto.BookingPatch) error {
+	if b.ID <= 0 {
+		return errors.Join(ErrValidation, errors.New("id <= 0"))
+	}
+	old, _ := uc.Repo.ReadBookingByID(ctx, b.ID)
+	if b.RoomID == nil {
+		b.RoomID = &old.RoomID
+	}
+	if b.GuestID == nil {
+		b.GuestID = &old.GuestID
+	}
+	if b.Start_date == nil {
+		b.Start_date = &old.Start_date
+	}
+	if b.End_date == nil {
+		b.End_date = &old.End_date
+	}
+	if b.Status == nil {
+		b.Status = &old.Status
+	}
+	err := validateBookingPatch(b)
+	if err != nil {
+		return errors.Join(ErrValidation, err)
+	}
+	err = uc.Repo.PatchBooking(ctx, b)
+	if err != nil {
+		return errors.Join(errors.New("DB manipulating error"), err)
+	}
+	return nil
+}
+
+func validateBookingPatch(b dto.BookingPatch) error {
+	if *b.RoomID <= 0 {
+		return errors.Join(ErrValidation, errors.New("room id <= 0"))
+	}
+	if *b.GuestID <= 0 {
+		return errors.Join(ErrValidation, errors.New("guest id <= 0"))
+	}
+	if b.Start_date.IsZero() || b.End_date.IsZero() {
+		return errors.New("some date is clear")
+	}
+	if !b.Start_date.Before(*b.End_date) {
+		return errors.New("start_date должен быть раньше end_date")
+	}
+	return nil
 }
