@@ -103,3 +103,27 @@ func validateBookingPatch(b dto.BookingPatch) error {
 	}
 	return nil
 }
+
+func (uc *BookingUsecase) GetList(ctx context.Context) ([]model.Booking, error) {
+	response, _ := uc.Repo.ListColumn(ctx)
+	if len(response) == 0 {
+		return response, errors.Join(ErrConflict, errors.New("database is clear"))
+	}
+	return response, nil
+}
+
+func (uc *BookingUsecase) GetFilteredBookings(ctx context.Context, filter map[string]interface{}) (map[string][]int, error) {
+	response, err := uc.Repo.FilterBookings(ctx, filter)
+	return response, err
+}
+
+func (uc *BookingUsecase) RemoveBooking(ctx context.Context, id int) error {
+	if id <= 0 {
+		return errors.Join(ErrValidation, errors.New("ID must be more than 0"))
+	}
+	err := uc.Repo.DeleteBooking(ctx, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

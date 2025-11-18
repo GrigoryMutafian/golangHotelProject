@@ -14,7 +14,7 @@ VALUES
     (1, 1, FALSE, 1, 2, 'Standard', FALSE),
     (2, 1, TRUE, 2, 4, 'Deluxe', TRUE),
     (3, 1, FALSE, 3, 3, 'Suite', FALSE);
-
+    
 CREATE TABLE IF NOT EXISTS bookings (
     id SERIAL PRIMARY KEY,
     room_id INT NOT NULL,

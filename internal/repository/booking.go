@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"golangHotelProject/internal/delivery/handlers/dto"
 	"golangHotelProject/internal/model"
+	"golangHotelProject/internal/repository/db"
 	"log"
 )
 
@@ -15,6 +17,9 @@ type BookingRepository interface {
 	ArrivalStatusOfRoom(ctx context.Context, RoomID int) (bool, error)
 	ReadBookingByID(ctx context.Context, id int) (model.Booking, error)
 	PatchBooking(ctx context.Context, b dto.BookingPatch) error
+	ListColumn(ctx context.Context) ([]model.Booking, error)
+	FilterBookings(ctx context.Context, filter map[string]interface{}) (map[string][]int, error)
+	DeleteBooking(ctx context.Context, id int) error
 }
 
 type PgBookingRepository struct {
@@ -88,6 +93,64 @@ func (r *PgBookingRepository) PatchBooking(ctx context.Context, b dto.BookingPat
 
 	if rowsAffected == 0 {
 		return errors.New("no rows")
+	}
+	return nil
+}
+
+func (r *PgBookingRepository) ListColumn(ctx context.Context) ([]model.Booking, error) {
+
+	rows, err := r.DB.QueryContext(ctx, `SELECT id, room_id, guest_id, start_date, end_date, status FROM bookings`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var bookings []model.Booking
+
+	for rows.Next() {
+		var b model.Booking
+
+		err := rows.Scan(&b.ID, &b.RoomID, &b.GuestID, &b.Start_date, &b.End_date, &b.Status)
+		if err != nil {
+			return nil, err
+		}
+
+		bookings = append(bookings, b)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}
+
+func (r *PgBookingRepository) FilterBookings(ctx context.Context, filter map[string]interface{}) (map[string][]int, error) {
+	responses := make(map[string][]int)
+	for column, value := range filter {
+		query := fmt.Sprintf("SELECT id FROM bookings WHERE %s = $1", column)
+		rows, err := db.DB.QueryContext(ctx, query, value)
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var currentID int
+			rows.Scan(&currentID)
+
+			strValue := fmt.Sprintf("%v", value)
+			responses[strValue] = append(responses[strValue], currentID)
+		}
+	}
+	return responses, nil
+}
+
+func (r *PgBookingRepository) DeleteBooking(ctx context.Context, id int) error {
+	_, err := db.DB.ExecContext(ctx, `DELETE FROM bookings WHERE id = $1`, id)
+	if err != nil {
+		return err
 	}
 	return nil
 }
