@@ -139,7 +139,10 @@ func (uc *RoomUsecase) RemoveRoom(ctx context.Context, id int) error {
 }
 
 func (uc *RoomUsecase) GetList(ctx context.Context) ([]md.Room, error) {
-	response, _ := uc.Repo.ListRoom(ctx)
+	response, err := uc.Repo.ListRoom(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if len(response) == 0 {
 		return response, errors.Join(ErrConflict, errors.New("database is clear"))
 	}

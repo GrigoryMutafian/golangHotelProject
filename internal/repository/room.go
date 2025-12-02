@@ -90,8 +90,8 @@ func (r *PgRoomRepository) FilterRoom(ctx context.Context, filter map[string]int
 			var currentID int
 			rows.Scan(&currentID)
 
-			strValue := fmt.Sprintf("%v", value)
-			responses[strValue] = append(responses[strValue], currentID)
+			strColumn := fmt.Sprintf("%v", column)
+			responses[strColumn] = append(responses[strColumn], currentID)
 		}
 	}
 	return responses, nil
