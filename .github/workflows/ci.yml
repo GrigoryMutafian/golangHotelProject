@@ -47,5 +47,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
-          version: latest
+          version: v2.6.2
+          install-mode: binary
           skip-cache: true
