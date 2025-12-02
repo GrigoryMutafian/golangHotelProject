@@ -2,19 +2,15 @@ version: 2
 
 linters:
   enable:
-    - errcheck
-    - gosimple
     - govet
     - staticcheck
     - unused
+    - ineffassign
 
-linters-settings:
-  errcheck:
-    check-blank: true
+run:
+  timeout: 5m
+  tests: true
 
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-
-run:
-  timeout: 5m
