@@ -104,7 +104,11 @@ func (r *PgBookingRepository) ListColumn(ctx context.Context) ([]model.Booking, 
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("error closing rows: %v", err)
+		}
+	}()
 
 	var bookings []model.Booking
 
@@ -136,9 +140,17 @@ func (r *PgBookingRepository) FilterBookings(ctx context.Context, filter map[str
 			return nil, err
 		}
 
+		defer func() {
+			if err := rows.Close(); err != nil {
+				log.Printf("error closing rows: %v", err)
+			}
+		}()
+
 		for rows.Next() {
 			var currentID int
-			rows.Scan(&currentID)
+			if err := rows.Scan(&currentID); err != nil {
+				return nil, err
+			}
 
 			strValue := fmt.Sprintf("%v", value)
 			responses[strValue] = append(responses[strValue], currentID)

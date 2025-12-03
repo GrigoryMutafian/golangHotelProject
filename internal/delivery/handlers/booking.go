@@ -6,6 +6,7 @@ import (
 	"golangHotelProject/internal/delivery/handlers/dto"
 	"golangHotelProject/internal/model"
 	"golangHotelProject/internal/usecase"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -28,7 +29,11 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("error closing request body: %v", err)
+		}
+	}()
 
 	var NewBooking model.Booking
 
@@ -108,7 +113,11 @@ func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("error closing request body: %v", err)
+		}
+	}()
 
 	var patch dto.BookingPatch
 
@@ -146,7 +155,11 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("error closing request body: %v", err)
+		}
+	}()
 
 	var filter map[string]interface{} //string - columns interface{} - values, getting ids with same parametrs
 	err := json.NewDecoder(r.Body).Decode(&filter)
@@ -155,7 +168,7 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(filter) == 0 {
-		bookings, err := roomUC.GetList(r.Context())
+		bookings, err := bookingUC.GetList(r.Context())
 
 		if err != nil {
 			switch {
@@ -212,7 +225,11 @@ func RemoveBooking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("error closing request body: %v", err)
+		}
+	}()
 
 	var romovingBookingID int
 

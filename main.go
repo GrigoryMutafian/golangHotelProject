@@ -16,7 +16,11 @@ func main() {
 		return
 	}
 
-	defer db.DB.Close()
+	defer func() {
+		if err := db.DB.Close(); err != nil {
+			log.Printf("error closing database: %v", err)
+		}
+	}()
 
 	roomRepo := &repository.PgRoomRepository{DB: db.DB}
 	roomUC := usecase.NewRoomUsecase(roomRepo)

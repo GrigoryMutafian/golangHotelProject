@@ -8,6 +8,7 @@ import (
 	"golangHotelProject/internal/delivery/handlers/dto"
 	md "golangHotelProject/internal/model"
 	"golangHotelProject/internal/repository/db"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -54,7 +55,11 @@ func (r *PgRoomRepository) ListRoom(ctx context.Context) ([]md.Room, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("error closing rows: %v", err)
+		}
+	}()
 
 	var rooms []md.Room
 
@@ -86,9 +91,17 @@ func (r *PgRoomRepository) FilterRoom(ctx context.Context, filter map[string]int
 			return nil, err
 		}
 
+		defer func() {
+			if err := rows.Close(); err != nil {
+				log.Printf("error closing rows: %v", err)
+			}
+		}()
+
 		for rows.Next() {
 			var currentID int
-			rows.Scan(&currentID)
+			if err := rows.Scan(&currentID); err != nil {
+				return nil, err
+			}
 
 			strColumn := fmt.Sprintf("%v", column)
 			responses[strColumn] = append(responses[strColumn], currentID)
