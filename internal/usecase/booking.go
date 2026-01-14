@@ -26,7 +26,7 @@ func (uc *BookingUsecase) CreateBooking(ctx context.Context, b model.Booking) er
 	}
 	ArrivaledRoomBoolean, _ := uc.Repo.ArrivalStatusOfRoom(ctx, b.RoomID)
 	if ArrivaledRoomBoolean {
-		return errors.Join(ErrValidation, errors.New("already have active booking in this room_id"))
+		return errors.Join(ErrValidation, errors.New("already have active booking in this room_ID"))
 	}
 	return uc.Repo.CreateBooking(ctx, b)
 }
