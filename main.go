@@ -10,6 +10,30 @@ import (
 	"net/http"
 )
 
+func withCORS(next http.Handler) http.Handler {
+	allowed := map[string]bool{
+		"http://localhost:3000": true,
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" && allowed[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
+
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	if err := db.InitDB(); err != nil {
 		fmt.Println(err)
@@ -46,8 +70,9 @@ func main() {
 	http.HandleFunc("/RemoveBooking", hn.RemoveBooking)
 	http.HandleFunc("/GetFilteredBookings", hn.GetFilteredBookings)
 	log.Println("server running on http://localhost:8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
+
+	handler := withCORS(http.DefaultServeMux)
+	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Println("the server is not running", err)
 	}
 }
