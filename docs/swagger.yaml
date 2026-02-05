@@ -1,0 +1,433 @@
+basePath: /
+definitions:
+  dto.BookingPatch:
+    properties:
+      endDate:
+        example: "2024-01-21T00:00:00Z"
+        type: string
+      guestId:
+        example: 2
+        type: integer
+      id:
+        example: 1
+        type: integer
+      roomId:
+        example: 2
+        type: integer
+      startDate:
+        example: "2024-01-16T00:00:00Z"
+        type: string
+      status:
+        example: cancelled
+        type: string
+    type: object
+  dto.CreatingRoomResponse:
+    properties:
+      message:
+        type: string
+      roomId:
+        type: integer
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.RemoveRoomRequest:
+    properties:
+      roomId:
+        type: integer
+    type: object
+  dto.RoomPatch:
+    properties:
+      floor:
+        example: 2
+        type: integer
+      isOccupied:
+        example: true
+        type: boolean
+      needCleaning:
+        example: true
+        type: boolean
+      roomCount:
+        example: 2
+        type: integer
+      roomType:
+        example: luxury
+        type: string
+      sleepingPlaces:
+        example: 3
+        type: integer
+    type: object
+  dto.RoomPatchResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  model.Booking:
+    properties:
+      end_date:
+        type: string
+      guest_id:
+        type: integer
+      id:
+        type: integer
+      room_id:
+        type: integer
+      start_date:
+        type: string
+      status:
+        type: string
+    type: object
+  model.Room:
+    properties:
+      floor:
+        type: integer
+      id:
+        type: integer
+      is_occupied:
+        type: boolean
+      need_cleaning:
+        type: boolean
+      number:
+        type: integer
+      room_count:
+        type: integer
+      room_type:
+        type: string
+      sleeping_places:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API server for hotel actions
+  title: Hotel Booking API
+  version: "1.0"
+paths:
+  /Create:
+    post:
+      consumes:
+      - application/json
+      description: create room
+      operationId: createRoom
+      parameters:
+      - description: new room data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/model.Room'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CreatingRoomResponse'
+        "400":
+          description: Invalid JSON or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict (room already exists)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request entity too large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "415":
+          description: Unsupported media type
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: create room
+      tags:
+      - room
+  /CreateBooking:
+    post:
+      consumes:
+      - application/json
+      description: Create a booking for a room
+      parameters:
+      - description: Booking object
+        in: body
+        name: booking
+        required: true
+        schema:
+          $ref: '#/definitions/model.Booking'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new booking
+      tags:
+      - bookings
+  /GetFilteredBookings:
+    get:
+      consumes:
+      - application/json
+      description: Get bookings by filter parameters
+      parameters:
+      - description: Filter criteria
+        in: body
+        name: filter
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get filtered bookings
+      tags:
+      - bookings
+  /GetFilteredRooms:
+    post:
+      consumes:
+      - application/json
+      description: get list of rooms with optional filters
+      operationId: getFilteredRooms
+      parameters:
+      - description: filter criteria
+        in: body
+        name: input
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: list of rooms
+          schema:
+            items:
+              $ref: '#/definitions/model.Room'
+            type: array
+        "400":
+          description: Invalid JSON or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: get filtered rooms
+      tags:
+      - room
+  /Patch:
+    patch:
+      consumes:
+      - application/json
+      description: patch an existing room
+      operationId: patchRoom
+      parameters:
+      - description: room id
+        in: query
+        name: id
+        required: true
+        type: integer
+      - description: patch data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RoomPatch'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: rooms updated
+          schema:
+            $ref: '#/definitions/dto.RoomPatchResponse'
+        "400":
+          description: Invalid JSON or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: patch room
+      tags:
+      - room
+  /PatchBookingByID:
+    patch:
+      consumes:
+      - application/json
+      description: Update an existing booking with partial data
+      parameters:
+      - description: Booking object with updates
+        in: body
+        name: booking
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BookingPatch'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update booking details
+      tags:
+      - bookings
+  /ReadBookingByID:
+    get:
+      description: Retrieve a specific booking by its ID
+      parameters:
+      - description: Booking ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/model.Booking'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get booking by ID
+      tags:
+      - bookings
+  /RemoveBooking:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a booking by ID
+      parameters:
+      - description: Booking ID
+        in: body
+        name: id
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a booking
+      tags:
+      - bookings
+  /RemoveRoom:
+    delete:
+      consumes:
+      - application/json
+      description: remove an existing room by id
+      operationId: removeRoom
+      parameters:
+      - description: room id to remove
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RemoveRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Removed Room id: {id}'
+          schema:
+            type: string
+        "400":
+          description: Invalid JSON or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: remove room
+      tags:
+      - room
+swagger: "2.0"

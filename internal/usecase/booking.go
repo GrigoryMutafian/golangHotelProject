@@ -15,6 +15,7 @@ type BookingUsecase struct {
 func NewBookingUsecase(repo repo.BookingRepository) *BookingUsecase {
 	return &BookingUsecase{Repo: repo}
 }
+
 func (uc *BookingUsecase) CreateBooking(ctx context.Context, b model.Booking) error {
 	err := validateBooking(b)
 	if err != nil {
@@ -30,6 +31,7 @@ func (uc *BookingUsecase) CreateBooking(ctx context.Context, b model.Booking) er
 	}
 	return uc.Repo.CreateBooking(ctx, b)
 }
+
 func validateBooking(b model.Booking) error {
 	if b.RoomID <= 0 {
 		return errors.Join(ErrValidation, errors.New("room id <= 0"))
@@ -58,10 +60,10 @@ func (uc *BookingUsecase) ReadByIDUsecase(ctx context.Context, id int) (model.Bo
 }
 
 func (uc *BookingUsecase) PatchBookingByID(ctx context.Context, b dto.BookingPatch) error {
-	if b.ID <= 0 {
+	if b.ID == nil || *b.ID <= 0 {
 		return errors.Join(ErrValidation, errors.New("id <= 0"))
 	}
-	old, _ := uc.Repo.ReadBookingByID(ctx, b.ID)
+	old, _ := uc.Repo.ReadBookingByID(ctx, *b.ID)
 	if b.RoomID == nil {
 		b.RoomID = &old.RoomID
 	}
@@ -89,13 +91,13 @@ func (uc *BookingUsecase) PatchBookingByID(ctx context.Context, b dto.BookingPat
 }
 
 func validateBookingPatch(b dto.BookingPatch) error {
-	if *b.RoomID <= 0 {
+	if b.RoomID == nil || *b.RoomID <= 0 {
 		return errors.Join(ErrValidation, errors.New("room id <= 0"))
 	}
-	if *b.GuestID <= 0 {
+	if b.GuestID == nil || *b.GuestID <= 0 {
 		return errors.Join(ErrValidation, errors.New("guest id <= 0"))
 	}
-	if b.Start_date.IsZero() || b.End_date.IsZero() {
+	if b.Start_date == nil || b.Start_date.IsZero() || b.End_date == nil || b.End_date.IsZero() {
 		return errors.New("some date is clear")
 	}
 	if !b.Start_date.Before(*b.End_date) {

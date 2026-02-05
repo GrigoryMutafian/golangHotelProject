@@ -15,7 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/server .
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates wget
 
 EXPOSE 8080
 

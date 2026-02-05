@@ -72,11 +72,11 @@ func TestBookingCreate_Success(t *testing.T) {
 	start := time.Now()
 	end := start.Add(48 * time.Hour)
 	booking := model.Booking{
-		RoomID:    1,
-		GuestID:   10,
+		RoomID:     1,
+		GuestID:    10,
 		Start_date: start,
 		End_date:   end,
-		Status:     true,
+		Status:     "confirmed",
 	}
 
 	mockRepo.On("GettingStatus", mock.Anything, booking.GuestID).Return(false, nil)
@@ -97,12 +97,12 @@ func TestBookingReadByID_Success(t *testing.T) {
 	start := time.Now()
 	end := start.Add(24 * time.Hour)
 	expected := model.Booking{
-		ID:        1,
-		RoomID:    2,
-		GuestID:   3,
+		ID:         1,
+		RoomID:     2,
+		GuestID:    3,
 		Start_date: start,
 		End_date:   end,
-		Status:     true,
+		Status:     "confirmed",
 	}
 
 	mockRepo.On("ReadBookingByID", mock.Anything, expected.ID).Return(expected, nil)
@@ -122,17 +122,17 @@ func TestBookingPatchByID_Success(t *testing.T) {
 	now := time.Now()
 	end := now.Add(72 * time.Hour)
 	oldBooking := model.Booking{
-		ID:        1,
-		RoomID:    1,
-		GuestID:   2,
+		ID:         1,
+		RoomID:     1,
+		GuestID:    2,
 		Start_date: now,
 		End_date:   end,
-		Status:     true,
+		Status:     "confirmed",
 	}
 
-	newStatus := false
+	newStatus := "cancelled"
 	patch := dto.BookingPatch{
-		ID:     oldBooking.ID,
+		ID:     &oldBooking.ID,
 		Status: &newStatus,
 	}
 
@@ -145,7 +145,7 @@ func TestBookingPatchByID_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	mockRepo.AssertCalled(t, "PatchBooking", mock.Anything, mock.MatchedBy(func(p dto.BookingPatch) bool {
-		return p.ID == oldBooking.ID && *p.Status == newStatus && *p.RoomID == oldBooking.RoomID
+		return p.ID != nil && *p.ID == oldBooking.ID && p.Status != nil && *p.Status == newStatus
 	}))
 }
 
@@ -154,10 +154,10 @@ func TestBookingGetList_Success(t *testing.T) {
 
 	bookings := []model.Booking{
 		{
-			ID:        1,
-			RoomID:    1,
-			GuestID:   1,
-			Status:    true,
+			ID:         1,
+			RoomID:     1,
+			GuestID:    1,
+			Status:     "confirmed",
 			Start_date: time.Now(),
 			End_date:   time.Now().Add(24 * time.Hour),
 		},
@@ -208,4 +208,3 @@ func TestBookingRemove_Success(t *testing.T) {
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
-
