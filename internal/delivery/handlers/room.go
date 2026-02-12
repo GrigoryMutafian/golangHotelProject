@@ -21,6 +21,20 @@ func InitDependencies(uc *usecase.RoomUsecase) error {
 	return nil
 }
 
+// @Summary create room
+// @Tags room
+// @Description create room
+// @ID createRoom
+// @Accept json
+// @Produce json
+// @Param input body md.Room true "new room data"
+// @Success 201 {object} dto.CreatingRoomResponse "Created"
+// @Failure 400 {object} dto.ErrorResponse "Invalid JSON or validation error"
+// @Failure 409 {object} dto.ErrorResponse "Conflict (room already exists)"
+// @Failure 413 {object} dto.ErrorResponse "Request entity too large"
+// @Failure 415 {object} dto.ErrorResponse "Unsupported media type"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /Create [post]
 func Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
@@ -68,12 +82,20 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// @Summary patch room
+// @Tags room
+// @Description patch an existing room
+// @ID patchRoom
+// @Accept json
+// @Produce json
+// @Param id query int true "room id"
+// @Param input body dto.RoomPatch true "patch data"
+// @Success 200 {object} dto.RoomPatchResponse "rooms updated"
+// @Failure 400 {object} dto.ErrorResponse "Invalid JSON or validation error"
+// @Failure 409 {object} dto.ErrorResponse "Conflict"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /Patch [patch]
 func Patch(w http.ResponseWriter, r *http.Request) {
-
-	if roomUC == nil {
-		http.Error(w, "handler not initialized", http.StatusInternalServerError)
-		return
-	}
 
 	if r.Method != http.MethodPatch {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -131,6 +153,18 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary remove room
+// @Tags room
+// @Description remove an existing room by id
+// @ID removeRoom
+// @Accept json
+// @Produce json
+// @Param input body dto.RemoveRoomRequest true "room id to remove"
+// @Success 200 {string} string "Removed Room id: {id}"
+// @Failure 400 {object} dto.ErrorResponse "Invalid JSON or validation error"
+// @Failure 409 {object} dto.ErrorResponse "Conflict"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /RemoveRoom [delete]
 func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -165,7 +199,7 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	removedRoom := fmt.Sprintf("Removed Coffee id: %d", romovingRoomID)
+	removedRoom := fmt.Sprintf("Removed Room id: %d", romovingRoomID)
 	err = json.NewEncoder(w).Encode(removedRoom)
 	if err != nil {
 		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
@@ -173,8 +207,20 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary get filtered rooms
+// @Tags room
+// @Description get list of rooms with optional filters
+// @ID getFilteredRooms
+// @Accept json
+// @Produce json
+// @Param input body map[string]interface{} false "filter criteria"
+// @Success 200 {array} md.Room "list of rooms"
+// @Failure 400 {object} dto.ErrorResponse "Invalid JSON or validation error"
+// @Failure 409 {object} dto.ErrorResponse "Conflict"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /GetFilteredRooms [post]
 func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -186,7 +232,7 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var filter map[string]interface{} //string - columns interface{} - values, getting ids with same parametrs
+	var filter map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&filter)
 	if err != nil {
 		http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
@@ -230,12 +276,6 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	response := "value[ids]"
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 	err = json.NewEncoder(w).Encode(responses)
 	if err != nil {
 		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)

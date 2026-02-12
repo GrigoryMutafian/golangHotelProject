@@ -2,13 +2,23 @@ package main
 
 import (
 	"fmt"
+	_ "golangHotelProject/docs"
 	hn "golangHotelProject/internal/delivery/handlers"
 	"golangHotelProject/internal/repository"
 	"golangHotelProject/internal/repository/db"
 	"golangHotelProject/internal/usecase"
 	"log"
 	"net/http"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
+
+// @title Hotel Booking API
+// @version 1.0
+// @description API server for hotel actions
+
+// @host localhost:8080
+// @BasePath /
 
 func withCORS(next http.Handler) http.Handler {
 	allowed := map[string]bool{
@@ -69,7 +79,20 @@ func main() {
 	http.HandleFunc("/PatchBookingByID", hn.PatchBookingByID)
 	http.HandleFunc("/RemoveBooking", hn.RemoveBooking)
 	http.HandleFunc("/GetFilteredBookings", hn.GetFilteredBookings)
+
+	http.Handle("/swagger/", httpSwagger.WrapHandler)
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write([]byte(`{"status": "ok"}`)); err != nil {
+			log.Printf("Error writing health response: %v", err)
+		}
+	})
+
 	log.Println("server running on http://localhost:8080")
+	log.Println("Swagger UI available at http://localhost:8080/swagger/index.html")
+	log.Println("Health check available at http://localhost:8080/health")
 
 	handler := withCORS(http.DefaultServeMux)
 	if err := http.ListenAndServe(":8080", handler); err != nil {

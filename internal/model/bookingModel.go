@@ -8,5 +8,5 @@ type Booking struct {
 	GuestID    int       `json:"guest_id"`
 	Start_date time.Time `json:"start_date"`
 	End_date   time.Time `json:"end_date"`
-	Status     bool      `json:"status"`
+	Status     string    `json:"status"`
 }

@@ -21,6 +21,17 @@ func InitBookingDependencies(uc *usecase.BookingUsecase) error {
 	return nil
 }
 
+// CreateBooking creates a new booking
+// @Summary Create a new booking
+// @Description Create a booking for a room
+// @Tags bookings
+// @Accept json
+// @Produce json
+// @Param booking body model.Booking true "Booking object"
+// @Success 201 {object} string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /CreateBooking [post]
 func CreateBooking(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
@@ -64,6 +75,16 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ReadBookingByID returns booking by ID
+// @Summary Get booking by ID
+// @Description Retrieve a specific booking by its ID
+// @Tags bookings
+// @Produce json
+// @Param id query int true "Booking ID"
+// @Success 200 {object} map[string]model.Booking
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /ReadBookingByID [get]
 func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
@@ -106,6 +127,17 @@ func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// PatchBookingByID updates booking
+// @Summary Update booking details
+// @Description Update an existing booking with partial data
+// @Tags bookings
+// @Accept json
+// @Produce json
+// @Param booking body dto.BookingPatch true "Booking object with updates"
+// @Success 200 {object} string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /PatchBookingByID [patch]
 func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -148,6 +180,17 @@ func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetFilteredBookings returns filtered bookings
+// @Summary Get filtered bookings
+// @Description Get bookings by filter parameters
+// @Tags bookings
+// @Accept json
+// @Produce json
+// @Param filter body map[string]interface{} false "Filter criteria"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /GetFilteredBookings [get]
 func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -161,7 +204,7 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var filter map[string]interface{} //string - columns interface{} - values, getting ids with same parametrs
+	var filter map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&filter)
 	if err != nil {
 		http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
@@ -205,12 +248,6 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	response := "value[ids]"
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
 	err = json.NewEncoder(w).Encode(responses)
 	if err != nil {
 		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
@@ -218,6 +255,17 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// RemoveBooking deletes a booking
+// @Summary Delete a booking
+// @Description Delete a booking by ID
+// @Tags bookings
+// @Accept json
+// @Produce json
+// @Param id body int true "Booking ID"
+// @Success 200 {string} string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /RemoveBooking [delete]
 func RemoveBooking(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
