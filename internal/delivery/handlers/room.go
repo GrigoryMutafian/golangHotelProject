@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"golangHotelProject/internal/delivery/handlers/dto"
+	"golangHotelProject/internal/delivery/handlers/helpers"
 	md "golangHotelProject/internal/model"
 	"golangHotelProject/internal/usecase"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -36,7 +36,14 @@ func InitDependencies(uc *usecase.RoomUsecase) error {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /Create [post]
 func Create(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "room.create")
+
 	if r.Method != http.MethodPost {
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
 		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
 		return
 	}
@@ -45,7 +52,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
@@ -56,30 +63,34 @@ func Create(w http.ResponseWriter, r *http.Request) {
 
 	err := dec.Decode(&NewRoom)
 	if err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json",
+			"error", err)
+		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
+	} else {
+		log.Info("decoded room",
+			"room number", NewRoom.Number)
 	}
 
 	if err := roomUC.AddRoom(r.Context(), NewRoom); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "add room", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	response := map[string]int{"Number of added Room is": NewRoom.Number}
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
-	}
+	log.Info("room added",
+		"room_number", NewRoom.Number)
 
+	response := map[string]int{"Number of added Room is": NewRoom.Number}
+	if err := helpers.WriteJSON(w, http.StatusCreated, response); err != nil {
+		log.Error("JSON encode error",
+			"error", err,
+			"room number", NewRoom.Number)
+		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Info("response sent",
+		"status", http.StatusCreated,
+		"room_number", NewRoom.Number)
 }
 
 // @Summary patch room
@@ -96,8 +107,14 @@ func Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /Patch [patch]
 func Patch(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "room.patch")
 
 	if r.Method != http.MethodPatch {
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -105,18 +122,20 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		http.Error(w, "missing id", http.StatusBadRequest)
+		log.Warn("missing id")
+		helpers.WriteTextError(w, http.StatusBadRequest, "missing id")
 		return
 	}
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		log.Warn("invalid id", "id", idStr)
+		helpers.WriteTextError(w, http.StatusBadRequest, "invalid id")
 		return
 	}
 
@@ -127,30 +146,27 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 
 	err = dec.Decode(&patch)
 	if err != nil {
-		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		return
 	}
+
+	log.Info("patching room", "room_id", id)
 
 	if err = roomUC.PatchRoom(r.Context(), id, patch); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "patch room", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	log.Info("room patched", "room_id", id)
+
 	response := map[string]string{"status": "rooms updated"}
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	if err := helpers.WriteJSON(w, http.StatusOK, response); err != nil {
+		log.Error("JSON encode error", "error", err, "room_id", id)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
 		return
 	}
+	log.Info("response sent", "status", http.StatusOK, "room_id", id)
 }
 
 // @Summary remove room
@@ -166,7 +182,14 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /RemoveRoom [delete]
 func RemoveRoom(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "room.remove")
+
 	if r.Method != http.MethodDelete {
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -174,7 +197,7 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
@@ -182,29 +205,27 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&romovingRoomID)
 	if err != nil {
-		http.Error(w, "JSON encoding error"+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "JSON encoding error"+err.Error())
+		return
 	}
+
+	log.Info("removing room", "room_id", romovingRoomID)
 
 	if err = roomUC.RemoveRoom(r.Context(), romovingRoomID); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "remove room", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	log.Info("room removed", "room_id", romovingRoomID)
+
 	removedRoom := fmt.Sprintf("Removed Room id: %d", romovingRoomID)
-	err = json.NewEncoder(w).Encode(removedRoom)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	if err := helpers.WriteJSON(w, http.StatusOK, removedRoom); err != nil {
+		log.Error("JSON encode error", "error", err, "room_id", romovingRoomID)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
 		return
 	}
+	log.Info("response sent", "status", http.StatusOK, "room_id", romovingRoomID)
 }
 
 // @Summary get filtered rooms
@@ -220,7 +241,14 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} dto.ErrorResponse "Internal server error"
 // @Router /GetFilteredRooms [post]
 func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "room.filter")
+
 	if r.Method != http.MethodPost {
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -228,57 +256,50 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
 	var filter map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&filter)
 	if err != nil {
-		http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "Invalid JSON format: "+err.Error())
 		return
 	}
+
+	log.Info("getting filtered rooms", "filter", filter)
+
 	if len(filter) == 0 {
+		log.Info("getting all rooms")
 		rooms, err := roomUC.GetList(r.Context())
 
 		if err != nil {
-			switch {
-			case usecase.IsValidationErr(err):
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			case usecase.IsConflictErr(err):
-				http.Error(w, err.Error(), http.StatusConflict)
-			default:
-				http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-			}
+			helpers.HandleUsecaseError(w, log, "get all rooms", err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(rooms)
-		if err != nil {
-			http.Error(w, "JSON encoding error", http.StatusInternalServerError)
+
+		log.Info("rooms retrieved", "count", len(rooms))
+		if err := helpers.WriteJSON(w, http.StatusOK, rooms); err != nil {
+			log.Error("JSON encode error", "error", err)
+			helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error")
 			return
 		}
-		return
-	}
-	responses, err := roomUC.GetFilteredRooms(r.Context(), filter)
-	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		log.Info("response sent", "status", http.StatusOK, "count", len(rooms))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(responses)
+	responses, err := roomUC.GetFilteredRooms(r.Context(), filter)
 	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+		helpers.HandleUsecaseError(w, log, "get filtered rooms", err)
 		return
 	}
+
+	log.Info("filtered rooms retrieved", "filter", filter, "count", len(responses))
+	if err := helpers.WriteJSON(w, http.StatusOK, responses); err != nil {
+		log.Error("JSON encode error", "error", err, "filter", filter)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
+		return
+	}
+	log.Info("response sent", "status", http.StatusOK, "filter", filter, "count", len(responses))
 }

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"golangHotelProject/internal/delivery/handlers/dto"
+	"golangHotelProject/internal/delivery/handlers/helpers"
 	"golangHotelProject/internal/model"
 	"golangHotelProject/internal/usecase"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -33,8 +33,15 @@ func InitBookingDependencies(uc *usecase.BookingUsecase) error {
 // @Failure 500 {object} map[string]string
 // @Router /CreateBooking [post]
 func CreateBooking(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "booking.create")
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
+		helpers.WriteTextError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
@@ -42,7 +49,7 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
@@ -50,29 +57,27 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&NewBooking)
 	if err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "Invalid JSON: "+err.Error())
 		return
 	}
+
+	log.Info("creating booking", "booking_id", NewBooking.ID)
 
 	if err := bookingUC.CreateBooking(r.Context(), NewBooking); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "create booking", err)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	log.Info("booking created", "booking_id", NewBooking.ID)
+
 	response := "Booking created"
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	if err := helpers.WriteJSON(w, http.StatusCreated, response); err != nil {
+		log.Error("JSON encode error", "error", err, "booking_id", NewBooking.ID)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
+		return
 	}
+	log.Info("response sent", "status", http.StatusCreated, "booking_id", NewBooking.ID)
 }
 
 // ReadBookingByID returns booking by ID
@@ -86,45 +91,50 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /ReadBookingByID [get]
 func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "booking.readByID")
+
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed: ", http.StatusMethodNotAllowed)
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
+		helpers.WriteTextError(w, http.StatusMethodNotAllowed, "Method Not Allowed")
 		return
 	}
 
 	idStr := r.URL.Query().Get("id")
 	if idStr == "" {
-		http.Error(w, "id input is clear", http.StatusBadRequest)
+		log.Warn("missing id")
+		helpers.WriteTextError(w, http.StatusBadRequest, "id input is clear")
 		return
 	}
 
 	idInt, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "pars error", http.StatusBadRequest)
+	if err != nil || idInt <= 0 {
+		log.Warn("invalid id", "id", idStr)
+		helpers.WriteTextError(w, http.StatusBadRequest, "pars error")
 		return
 	}
+
+	log.Info("reading booking", "booking_id", idInt)
 
 	book, err := bookingUC.ReadByIDUsecase(r.Context(), idInt)
 	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "reading booking", err)
 		return
 	}
 
+	log.Info("booking retrieved", "booking_id", idInt)
+
 	text := fmt.Sprintf("column id: %d", idInt)
 	response := map[string]model.Booking{text: book}
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	if err := helpers.WriteJSON(w, http.StatusOK, response); err != nil {
+		log.Error("JSON encode error", "error", err, "booking_id", idInt)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	log.Info("response sent", "status", http.StatusOK, "booking_id", idInt)
 }
 
 // PatchBookingByID updates booking
@@ -139,15 +149,22 @@ func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /PatchBookingByID [patch]
 func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "booking.patch")
+
 	if r.Method != http.MethodPatch {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
+		helpers.WriteTextError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
@@ -155,29 +172,27 @@ func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&patch)
 	if err != nil {
-		http.Error(w, "Invalid JSON: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := bookingUC.PatchBookingByID(r.Context(), patch); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "Invalid JSON: "+err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	response := fmt.Sprintf("column id: %d", patch.ID)
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	log.Info("patching booking", "booking_id", patch.ID)
+
+	if err := bookingUC.PatchBookingByID(r.Context(), patch); err != nil {
+		helpers.HandleUsecaseError(w, log, "patch booking", err)
 		return
 	}
+
+	log.Info("booking patched", "booking_id", patch.ID)
+
+	response := fmt.Sprintf("column id: %d", patch.ID)
+	if err := helpers.WriteJSON(w, http.StatusOK, response); err != nil {
+		log.Error("JSON encode error", "error", err, "booking_id", patch.ID)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
+		return
+	}
+	log.Info("response sent", "status", http.StatusOK, "booking_id", patch.ID)
 }
 
 // GetFilteredBookings returns filtered bookings
@@ -192,67 +207,67 @@ func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /GetFilteredBookings [get]
 func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "booking.getFiltered")
+
 	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
+		helpers.WriteTextError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
 	var filter map[string]interface{}
 	err := json.NewDecoder(r.Body).Decode(&filter)
 	if err != nil {
-		http.Error(w, "Invalid JSON format: "+err.Error(), http.StatusBadRequest)
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "Invalid JSON format: "+err.Error())
 		return
 	}
+
+	log.Info("getting filtered bookings", "filter", filter)
+
 	if len(filter) == 0 {
+		log.Info("getting all bookings")
 		bookings, err := bookingUC.GetList(r.Context())
 
 		if err != nil {
-			switch {
-			case usecase.IsValidationErr(err):
-				http.Error(w, err.Error(), http.StatusBadRequest)
-			case usecase.IsConflictErr(err):
-				http.Error(w, err.Error(), http.StatusConflict)
-			default:
-				http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-			}
+			helpers.HandleUsecaseError(w, log, "get all bookings", err)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(bookings)
-		if err != nil {
-			http.Error(w, "JSON encoding error", http.StatusInternalServerError)
+
+		log.Info("bookings retrieved", "count", len(bookings))
+		if err := helpers.WriteJSON(w, http.StatusOK, bookings); err != nil {
+			log.Error("JSON encode error", "error", err)
+			helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error")
 			return
 		}
-		return
-	}
-	responses, err := bookingUC.GetFilteredBookings(r.Context(), filter)
-	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		log.Info("response sent", "status", http.StatusOK, "count", len(bookings))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(responses)
+	responses, err := bookingUC.GetFilteredBookings(r.Context(), filter)
 	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+		helpers.HandleUsecaseError(w, log, "get filtered bookings", err)
 		return
 	}
+
+	log.Info("filtered bookings retrieved", "filter", filter, "count", len(responses))
+	if err := helpers.WriteJSON(w, http.StatusOK, responses); err != nil {
+		log.Error("JSON encode error", "error", err, "filter", filter)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
+		return
+	}
+	log.Info("response sent", "status", http.StatusOK, "filter", filter, "count", len(responses))
 }
 
 // RemoveBooking deletes a booking
@@ -267,43 +282,48 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /RemoveBooking [delete]
 func RemoveBooking(w http.ResponseWriter, r *http.Request) {
+	log := helpers.ReqLogger(r, "booking.remove")
+
 	if r.Method != http.MethodDelete {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		log.Warn(
+			"method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+		)
+		helpers.WriteTextError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	defer func() {
 		if err := r.Body.Close(); err != nil {
-			log.Printf("error closing request body: %v", err)
+			log.Error("error closing request body", "err", err)
 		}
 	}()
 
-	var romovingBookingID int
+	var removingBookingID int
 
-	err := json.NewDecoder(r.Body).Decode(&romovingBookingID)
+	err := json.NewDecoder(r.Body).Decode(&removingBookingID)
 	if err != nil {
-		http.Error(w, "JSON encoding error"+err.Error(), http.StatusBadRequest)
-	}
-
-	if err = bookingUC.RemoveBooking(r.Context(), romovingBookingID); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		log.Warn("invalid json", "error", err)
+		helpers.WriteTextError(w, http.StatusBadRequest, "JSON encoding error: "+err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	removedRoom := fmt.Sprintf("Removed Coffee id: %d", romovingBookingID)
-	err = json.NewEncoder(w).Encode(removedRoom)
-	if err != nil {
-		http.Error(w, "JSON encoding error: "+err.Error(), http.StatusInternalServerError)
+	log.Info("removing booking", "booking_id", removingBookingID)
+
+	if err = bookingUC.RemoveBooking(r.Context(), removingBookingID); err != nil {
+		helpers.HandleUsecaseError(w, log, "remove booking", err)
 		return
 	}
+
+	log.Info("booking removed", "booking_id", removingBookingID)
+
+	removedBooking := fmt.Sprintf("Removed Booking id: %d", removingBookingID)
+	if err := helpers.WriteJSON(w, http.StatusOK, removedBooking); err != nil {
+		log.Error("JSON encode error", "error", err, "booking_id", removingBookingID)
+		helpers.WriteTextError(w, http.StatusInternalServerError, "JSON encoding error: "+err.Error())
+		return
+	}
+	log.Info("response sent", "status", http.StatusOK, "booking_id", removingBookingID)
 }
