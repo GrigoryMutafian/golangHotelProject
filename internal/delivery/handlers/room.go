@@ -73,24 +73,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := roomUC.AddRoom(r.Context(), NewRoom); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error",
-				"room number", NewRoom.Number,
-				"error", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case usecase.IsConflictErr(err):
-			log.Info("room conflict",
-				"room number", NewRoom.Number,
-				"err", err)
-			http.Error(w, err.Error(), http.StatusConflict)
-		default:
-			log.Error("add room failed",
-				"room_number", NewRoom.Number,
-				"err", err,
-			)
-			http.Error(w, "internal error: "+err.Error(), http.StatusInternalServerError)
-		}
+		helpers.HandleUsecaseError(w, log, "add room", err)
 		return
 	}
 
@@ -171,17 +154,7 @@ func Patch(w http.ResponseWriter, r *http.Request) {
 	log.Info("patching room", "room_id", id)
 
 	if err = roomUC.PatchRoom(r.Context(), id, patch); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "room_id", id, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("room conflict", "room_id", id, "err", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("patch room failed", "room_id", id, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "patch room", err)
 		return
 	}
 
@@ -240,17 +213,7 @@ func RemoveRoom(w http.ResponseWriter, r *http.Request) {
 	log.Info("removing room", "room_id", romovingRoomID)
 
 	if err = roomUC.RemoveRoom(r.Context(), romovingRoomID); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "room_id", romovingRoomID, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("room conflict", "room_id", romovingRoomID, "err", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("remove room failed", "room_id", romovingRoomID, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "remove room", err)
 		return
 	}
 
@@ -312,17 +275,7 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 		rooms, err := roomUC.GetList(r.Context())
 
 		if err != nil {
-			switch {
-			case usecase.IsValidationErr(err):
-				log.Info("validation error", "error", err)
-				helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-			case usecase.IsConflictErr(err):
-				log.Info("room conflict", "error", err)
-				helpers.WriteTextError(w, http.StatusConflict, err.Error())
-			default:
-				log.Error("get rooms failed", "err", err)
-				helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-			}
+			helpers.HandleUsecaseError(w, log, "get all rooms", err)
 			return
 		}
 
@@ -338,17 +291,7 @@ func GetFilteredRooms(w http.ResponseWriter, r *http.Request) {
 
 	responses, err := roomUC.GetFilteredRooms(r.Context(), filter)
 	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "filter", filter, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("room conflict", "filter", filter, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("get filtered rooms failed", "filter", filter, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "get filtered rooms", err)
 		return
 	}
 

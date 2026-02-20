@@ -65,17 +65,7 @@ func CreateBooking(w http.ResponseWriter, r *http.Request) {
 	log.Info("creating booking", "booking_id", NewBooking.ID)
 
 	if err := bookingUC.CreateBooking(r.Context(), NewBooking); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "booking_id", NewBooking.ID, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("booking conflict", "booking_id", NewBooking.ID, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("create booking failed", "booking_id", NewBooking.ID, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "create booking", err)
 		return
 	}
 
@@ -131,17 +121,7 @@ func ReadBookingByID(w http.ResponseWriter, r *http.Request) {
 
 	book, err := bookingUC.ReadByIDUsecase(r.Context(), idInt)
 	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "booking_id", idInt, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("booking conflict", "booking_id", idInt, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("read booking failed", "booking_id", idInt, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "reading booking", err)
 		return
 	}
 
@@ -200,17 +180,7 @@ func PatchBookingByID(w http.ResponseWriter, r *http.Request) {
 	log.Info("patching booking", "booking_id", patch.ID)
 
 	if err := bookingUC.PatchBookingByID(r.Context(), patch); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "booking_id", patch.ID, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("booking conflict", "booking_id", patch.ID, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("patch booking failed", "booking_id", patch.ID, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "patch booking", err)
 		return
 	}
 
@@ -271,17 +241,7 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 		bookings, err := bookingUC.GetList(r.Context())
 
 		if err != nil {
-			switch {
-			case usecase.IsValidationErr(err):
-				log.Info("validation error", "error", err)
-				helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-			case usecase.IsConflictErr(err):
-				log.Info("booking conflict", "error", err)
-				helpers.WriteTextError(w, http.StatusConflict, err.Error())
-			default:
-				log.Error("get bookings failed", "err", err)
-				helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-			}
+			helpers.HandleUsecaseError(w, log, "get all bookings", err)
 			return
 		}
 
@@ -297,17 +257,7 @@ func GetFilteredBookings(w http.ResponseWriter, r *http.Request) {
 
 	responses, err := bookingUC.GetFilteredBookings(r.Context(), filter)
 	if err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "filter", filter, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("booking conflict", "filter", filter, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("get filtered bookings failed", "filter", filter, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "get filtered bookings", err)
 		return
 	}
 
@@ -363,17 +313,7 @@ func RemoveBooking(w http.ResponseWriter, r *http.Request) {
 	log.Info("removing booking", "booking_id", removingBookingID)
 
 	if err = bookingUC.RemoveBooking(r.Context(), removingBookingID); err != nil {
-		switch {
-		case usecase.IsValidationErr(err):
-			log.Info("validation error", "booking_id", removingBookingID, "error", err)
-			helpers.WriteTextError(w, http.StatusBadRequest, err.Error())
-		case usecase.IsConflictErr(err):
-			log.Info("booking conflict", "booking_id", removingBookingID, "error", err)
-			helpers.WriteTextError(w, http.StatusConflict, err.Error())
-		default:
-			log.Error("remove booking failed", "booking_id", removingBookingID, "err", err)
-			helpers.WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
-		}
+		helpers.HandleUsecaseError(w, log, "remove booking", err)
 		return
 	}
 

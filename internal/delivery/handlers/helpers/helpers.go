@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"encoding/json"
+	"golangHotelProject/internal/usecase"
 	"log/slog"
 	"net/http"
 )
@@ -28,4 +29,18 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 
 func WriteTextError(w http.ResponseWriter, status int, msg string) {
 	http.Error(w, msg, status)
+}
+
+func HandleUsecaseError(w http.ResponseWriter, logger *slog.Logger, op string, err error) {
+	switch {
+	case usecase.IsValidationErr(err):
+		logger.Info("validation error", "op", op, "error", err)
+		WriteTextError(w, http.StatusBadRequest, err.Error())
+	case usecase.IsConflictErr(err):
+		logger.Info("conflict error", "op", op, "error", err)
+		WriteTextError(w, http.StatusConflict, err.Error())
+	default:
+		logger.Error("internal error", "op", op, "error", err)
+		WriteTextError(w, http.StatusInternalServerError, "internal error: "+err.Error())
+	}
 }
