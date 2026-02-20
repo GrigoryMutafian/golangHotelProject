@@ -13,7 +13,7 @@ func InitLogger(level string) {
 		logLevel = slog.LevelDebug
 	case "INFO":
 		logLevel = slog.LevelInfo
-	case "WARM":
+	case "WARN":
 		logLevel = slog.LevelWarn
 	case "ERROR":
 		logLevel = slog.LevelError

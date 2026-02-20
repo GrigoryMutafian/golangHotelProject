@@ -6,6 +6,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - LOG_LEVEL=DEBUG
       - DB_HOST=db
       - DB_USER=postgres
       - DB_PASSWORD=123456789

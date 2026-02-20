@@ -11,6 +11,30 @@ import (
 	"strconv"
 )
 
+func reqLogger(r *http.Request, handler string) *slog.Logger {
+	return slog.Default().With(
+		"handler", handler,
+		"method", r.Method,
+		"path", r.URL.Path,
+		"remote", r.RemoteAddr,
+	)
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, err = w.Write(b)
+	return err
+}
+
+func writeTextError(w http.ResponseWriter, status int, msg string) {
+	http.Error(w, msg, status)
+}
+
 var bookingUC *usecase.BookingUsecase
 
 func InitBookingDependencies(uc *usecase.BookingUsecase) error {
