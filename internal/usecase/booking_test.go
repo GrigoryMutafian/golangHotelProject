@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -11,6 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+// testLogger создает логгер для тестов (отключает вывод)
+func testBookingLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 type MockBookingRepository struct {
 	mock.Mock
@@ -83,7 +90,7 @@ func TestBookingCreate_Success(t *testing.T) {
 	mockRepo.On("ArrivalStatusOfRoom", mock.Anything, booking.RoomID).Return(false, nil)
 	mockRepo.On("CreateBooking", mock.Anything, booking).Return(nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	err := uc.CreateBooking(context.Background(), booking)
 
@@ -107,7 +114,7 @@ func TestBookingReadByID_Success(t *testing.T) {
 
 	mockRepo.On("ReadBookingByID", mock.Anything, expected.ID).Return(expected, nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	result, err := uc.ReadByIDUsecase(context.Background(), expected.ID)
 
@@ -139,7 +146,7 @@ func TestBookingPatchByID_Success(t *testing.T) {
 	mockRepo.On("ReadBookingByID", mock.Anything, oldBooking.ID).Return(oldBooking, nil)
 	mockRepo.On("PatchBooking", mock.Anything, mock.Anything).Return(nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	err := uc.PatchBookingByID(context.Background(), patch)
 
@@ -165,7 +172,7 @@ func TestBookingGetList_Success(t *testing.T) {
 
 	mockRepo.On("ListColumn", mock.Anything).Return(bookings, nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	result, err := uc.GetList(context.Background())
 
@@ -187,7 +194,7 @@ func TestBookingGetFiltered_Success(t *testing.T) {
 
 	mockRepo.On("FilterBookings", mock.Anything, filter).Return(expected, nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	result, err := uc.GetFilteredBookings(context.Background(), filter)
 
@@ -201,7 +208,7 @@ func TestBookingRemove_Success(t *testing.T) {
 
 	mockRepo.On("DeleteBooking", mock.Anything, 1).Return(nil)
 
-	uc := NewBookingUsecase(mockRepo)
+	uc := NewBookingUsecase(mockRepo, testBookingLogger())
 
 	err := uc.RemoveBooking(context.Background(), 1)
 
