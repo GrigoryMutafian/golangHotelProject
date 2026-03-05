@@ -1,14 +1,16 @@
 package main
 
 import (
-	"fmt"
 	_ "golangHotelProject/docs"
 	hn "golangHotelProject/internal/delivery/handlers"
+	"golangHotelProject/internal/logger"
 	"golangHotelProject/internal/repository"
 	"golangHotelProject/internal/repository/db"
 	"golangHotelProject/internal/usecase"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -45,27 +47,41 @@ func withCORS(next http.Handler) http.Handler {
 }
 
 func main() {
+	// Инициализация логгера
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "INFO"
+	}
+	logger.InitLogger(logLevel)
+
+	slog.Info("starting hotel booking service", "log_level", logLevel)
+
 	if err := db.InitDB(); err != nil {
-		fmt.Println(err)
+		slog.Error("failed to init database", "error", err.Error())
 		return
 	}
 
 	defer func() {
 		if err := db.DB.Close(); err != nil {
-			log.Printf("error closing database: %v", err)
+			slog.Error("error closing database", "error", err.Error())
 		}
 	}()
 
+	// Инициализация репозиториев
 	roomRepo := &repository.PgRoomRepository{DB: db.DB}
-	roomUC := usecase.NewRoomUsecase(roomRepo)
+	bookingRepo := &repository.PgBookingRepository{DB: db.DB}
+
+	// Инициализация usecase с логгером
+	roomUC := usecase.NewRoomUsecase(roomRepo, slog.Default())
+	bookingUC := usecase.NewBookingUsecase(bookingRepo, slog.Default())
+
 	if err := hn.InitDependencies(roomUC); err != nil {
+		slog.Error("handlers init failed", "error", err.Error())
 		log.Fatalf("handlers init: %v", err)
 	}
 
-	bookingRepo := &repository.PgBookingRepository{DB: db.DB}
-	bookingUC := usecase.NewBookingUsecase(bookingRepo)
-
 	if err := hn.InitBookingDependencies(bookingUC); err != nil {
+		slog.Error("booking handlers init failed", "error", err.Error())
 		log.Fatalf("handlers init: %v", err)
 	}
 
