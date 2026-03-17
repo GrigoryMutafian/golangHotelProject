@@ -5,11 +5,18 @@ import (
 	"errors"
 	"golangHotelProject/internal/delivery/handlers/dto"
 	md "golangHotelProject/internal/model"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+// testLogger создает логгер для тестов (отключает вывод)
+func testLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
+}
 
 type MockRoomRepository struct {
 	mock.Mock
@@ -63,7 +70,7 @@ func TestCreateRoom_Success(t *testing.T) {
 	mockRepo.On("IsNumberExists", mock.Anything, 1).Return(false, nil)
 	mockRepo.On("CreateRoom", mock.Anything, mock.Anything).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -86,7 +93,7 @@ func TestCreateRoom_NumberAlreadyExists(t *testing.T) {
 
 	mockRepo.On("IsNumberExists", mock.Anything, 1).Return(true, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -107,7 +114,7 @@ func TestCreateRoom_NumberAlreadyExists(t *testing.T) {
 func TestCreateRoom_InvalidNumber(t *testing.T) {
 	mockRepo := new(MockRoomRepository)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         -1,
@@ -131,7 +138,7 @@ func TestCreateRoom_InvalidRoomCountNumber(t *testing.T) {
 
 	mockRepo.On("CreateRoom", mock.Anything, mock.Anything).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -152,7 +159,7 @@ func TestCreateRoom_InvalidRoomCountNumber(t *testing.T) {
 func TestCreateRoom_InvalidFloorNumber(t *testing.T) {
 	mockRepo := new(MockRoomRepository)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -174,7 +181,7 @@ func TestCreateRoom_InvalidFloorNumber(t *testing.T) {
 func TestCreateRoom_InvalidSleepingPlacesNumber(t *testing.T) {
 	mockRepo := new(MockRoomRepository)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         -1,
@@ -196,7 +203,7 @@ func TestCreateRoom_InvalidSleepingPlacesNumber(t *testing.T) {
 func TestCreateRoom_RoomTypeIsEmpty(t *testing.T) {
 	mockRepo := new(MockRoomRepository)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         -1,
@@ -221,7 +228,7 @@ func TestCreateRoom_DatabaseErrorWhenCheckingNumberExisting(t *testing.T) {
 	mockRepo.On("IsNumberExists", mock.Anything, 1).Return(false, errors.New("database connection failed"))
 	mockRepo.On("CreateRoom", mock.Anything, mock.Anything).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -244,7 +251,7 @@ func TestCreateRoom_DatabaseErrorWhenCreatingRoom(t *testing.T) {
 	mockRepo.On("IsNumberExists", mock.Anything, 1).Return(false, nil)
 	mockRepo.On("CreateRoom", mock.Anything, mock.Anything).Return(errors.New("database connection failed"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	room := md.Room{
 		Number:         1,
@@ -287,7 +294,7 @@ func TestGetList_Success(t *testing.T) {
 
 	mockRepo.On("ListRoom", mock.Anything).Return(rooms, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	result, err := uc.GetList(context.Background())
 
@@ -311,7 +318,7 @@ func TestGetList_ListIsClear(t *testing.T) {
 
 	mockRepo.On("ListRoom", mock.Anything).Return(rooms, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	result, err := uc.GetList(context.Background())
 
@@ -327,7 +334,7 @@ func TestGetList_DatabaseConnectionError(t *testing.T) {
 	rooms := []md.Room{}
 	mockRepo.On("ListRoom", mock.Anything).Return(rooms, errors.New("DB connection failed"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	_, err := uc.GetList(context.Background())
 
@@ -349,7 +356,7 @@ func TestGetFilteredRooms_Success(t *testing.T) {
 
 	mockRepo.On("FilterRoom", mock.Anything, filter).Return(expectedResponse, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	result, err := uc.GetFilteredRooms(context.Background(), filter)
 
@@ -371,7 +378,7 @@ func TestGetFilteredRooms_FilterIsEmpty(t *testing.T) {
 
 	mockRepo.On("FilterRoom", mock.Anything, filter).Return(expectedResponse, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	result, err := uc.GetFilteredRooms(context.Background(), filter)
 
@@ -388,12 +395,12 @@ func TestGetFilteredRooms_DatabaseError(t *testing.T) {
 	}
 
 	mockRepo.On("FilterRoom", mock.Anything, filter).Return(map[string][]int{}, errors.New("column `floorr` doesnt exist"))
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	result, err := uc.GetFilteredRooms(context.Background(), filter)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "doesnt exist")
-	assert.NotNil(t, result)
+	assert.Empty(t, result)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -410,7 +417,7 @@ func TestGetFilteredRooms_Multiplyfilters(t *testing.T) {
 	}
 
 	mockRepo.On("FilterRoom", mock.Anything, filter).Return(expectedResponse, nil)
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	result, err := uc.GetFilteredRooms(context.Background(), filter)
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -429,7 +436,7 @@ func TestRemoveRoom_SuccessRemove(t *testing.T) {
 	mockRepo.On("IsOccupied", mock.Anything, id).Return(false, nil)
 	mockRepo.On("DeleteRoom", mock.Anything, id).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.RemoveRoom(context.Background(), id)
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
@@ -440,7 +447,7 @@ func TestRemoveRoom_InvalidID(t *testing.T) {
 
 	id := 0
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.RemoveRoom(context.Background(), id)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ID must be more than 0")
@@ -454,7 +461,7 @@ func TestRemoveRoom_RoomOccupied(t *testing.T) {
 	id := 1
 	mockRepo.On("IsOccupied", mock.Anything, id).Return(true, nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.RemoveRoom(context.Background(), id)
 
 	assert.Error(t, err)
@@ -469,7 +476,7 @@ func TestRemoveRoom_RoomOccupiedDatabaseError(t *testing.T) {
 	id := 1
 	mockRepo.On("IsOccupied", mock.Anything, id).Return(false, errors.New("db error"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.RemoveRoom(context.Background(), id)
 	assert.Error(t, err)
 	mockRepo.AssertNotCalled(t, "DeleteRoom")
@@ -483,7 +490,7 @@ func TestRemoveRoom_DeleteRoomDatabaseError(t *testing.T) {
 	mockRepo.On("IsOccupied", mock.Anything, id).Return(false, nil)
 	mockRepo.On("DeleteRoom", mock.Anything, id).Return(errors.New("db error"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.RemoveRoom(context.Background(), id)
 	assert.Error(t, err)
 	mockRepo.AssertExpectations(t)
@@ -511,7 +518,7 @@ func TestPatchRoom(t *testing.T) {
 
 	mockRepo.On("PatchRoom", mock.Anything, id, patch).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
@@ -529,7 +536,7 @@ func TestPatchRoom_OnlyFloor(t *testing.T) {
 
 	mockRepo.On("PatchRoom", mock.Anything, id, patch).Return(nil)
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
@@ -541,7 +548,7 @@ func TestPatchRoom_EmptyPatch(t *testing.T) {
 	id := 1
 	patch := dto.RoomPatch{}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 
 	err := uc.PatchRoom(context.Background(), id, patch)
 
@@ -561,7 +568,7 @@ func TestPatchRoom_InvalidID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := new(MockRoomRepository)
-			uc := NewRoomUsecase(mockRepo)
+			uc := NewRoomUsecase(mockRepo, testLogger())
 
 			floor := 2
 			patch := dto.RoomPatch{Floor: &floor}
@@ -583,7 +590,7 @@ func TestPatchRoom_InvalidFloor(t *testing.T) {
 		Floor: &floor,
 	}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 
 	assert.Error(t, err)
@@ -599,7 +606,7 @@ func TestPatchRoom_InvalidSleepingPlaces(t *testing.T) {
 		SleepingPlaces: &sleepingPlaces,
 	}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 
 	assert.Error(t, err)
@@ -615,7 +622,7 @@ func TestPatchRoom_InvalidRoomType(t *testing.T) {
 		RoomType: &roomType,
 	}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 
 	assert.Error(t, err)
@@ -631,7 +638,7 @@ func TestPatchRoom_InvalidRoomCount(t *testing.T) {
 		RoomCount: &roomCount,
 	}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 
 	assert.Error(t, err)
@@ -649,7 +656,7 @@ func TestPatchRoom_InvalidDatas(t *testing.T) {
 		IsOccupied:   &isOccupied,
 	}
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 
 	assert.Error(t, err)
@@ -669,7 +676,7 @@ func TestPatchRoom_DataBaseError(t *testing.T) {
 
 	mockRepo.On("PatchRoom", mock.Anything, id, patch).Return(errors.New("databese error"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 	assert.Error(t, err)
 	mockRepo.AssertExpectations(t)
@@ -687,7 +694,7 @@ func TestPatchRoom_RoomNotFound(t *testing.T) {
 
 	mockRepo.On("PatchRoom", mock.Anything, id, patch).Return(errors.New("room not found"))
 
-	uc := NewRoomUsecase(mockRepo)
+	uc := NewRoomUsecase(mockRepo, testLogger())
 	err := uc.PatchRoom(context.Background(), id, patch)
 	assert.Error(t, err)
 	mockRepo.AssertExpectations(t)
